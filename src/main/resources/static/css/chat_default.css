@@ -1,0 +1,549 @@
+/* ==============================================================
+   폰트 (폐쇄망 대응: 외부 CDN @import 대신 자체 서빙)
+   Pretendard v1.3.9 Variable / SIL Open Font License 1.1
+   https://github.com/orioncactus/pretendard
+   ============================================================== */
+@font-face {
+    font-family: 'Pretendard Variable';
+    font-weight: 45 920;      /* Variable 폰트 굵기 범위 */
+    font-style: normal;
+    font-display: swap;       /* 폰트 로딩 중에도 대체 폰트로 즉시 렌더 */
+    src: url('/fonts/PretendardVariable.woff2') format('woff2-variations');
+}
+
+body {
+    /* 폰트를 못 받는 상황에서도 한글이 깨지지 않도록 OS 기본 한글 폰트를 폴백으로 둔다. */
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+                 system-ui, 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    letter-spacing: -0.01em;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #3a3a3a; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ==============================================================
+   Animations
+   HTML/JS 에서 쓰는 tailwindcss-animate 스타일 클래스를 직접 정의한다.
+   (해당 플러그인을 쓰지 않으므로 여기 없는 클래스는 아무 효과도 내지 않는다)
+   ============================================================== */
+@keyframes gradient-x {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+.animate-gradient-x { animation: gradient-x 4s ease infinite; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in-from-bottom { from { transform: translateY(15px); } to { transform: translateY(0); } }
+@keyframes slide-in-from-top { from { transform: translateY(-15px); } to { transform: translateY(0); } }
+@keyframes slide-in-from-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes zoom-in-95 { from { transform: scale(0.95); } to { transform: scale(1); } }
+
+.animate-in { animation-fill-mode: forwards; }
+.fade-in { animation: fade-in 0.5s ease-out; }
+.slide-in-from-bottom-4 { animation: slide-in-from-bottom 0.5s ease-out; }
+.slide-in-from-bottom-8 { animation: slide-in-from-bottom 0.7s ease-out; }
+.slide-in-from-bottom-12 { animation: slide-in-from-bottom 0.9s ease-out; }
+.slide-in-from-right { animation: slide-in-from-right 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* 좌측 목록 "더보기" 시 위에서 내려오는 등장 효과 (renderLeftCharHistory) */
+.slide-in-from-top-2 { animation: slide-in-from-top 0.2s ease-out; }
+.slide-in-from-top-8 { animation: slide-in-from-top 0.7s ease-out; }
+
+/* 팝업 메뉴 / 드롭다운 등장 효과 */
+.zoom-in-95 { animation: zoom-in-95 0.15s ease-out; }
+
+/* 접근성: 사용자가 OS 에서 애니메이션 줄이기를 켠 경우 모든 등장 효과를 끈다 */
+@media (prefers-reduced-motion: reduce) {
+    .animate-in,
+    .animate-gradient-x,
+    .fade-in,
+    .slide-in-from-bottom-4,
+    .slide-in-from-bottom-8,
+    .slide-in-from-bottom-12,
+    .slide-in-from-right,
+    .slide-in-from-top-2,
+    .slide-in-from-top-8,
+    .zoom-in-95 {
+        animation: none !important;
+    }
+}
+
+/* ==============================================================
+   답변 스트리밍 중 타이핑 커서
+   streamAnswer() 가 응답을 받는 동안 .cursor-blink 를 붙였다 뗀다.
+   ============================================================== */
+@keyframes cursor-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+/* 마크다운이 변환된 경우 마지막 블록 끝에, 평문/빈 상태면 요소 자체 끝에 커서를 붙인다.
+   (:not(:has(*)) = 자식 요소가 없는 상태 → 빈 div + 평문만 있는 div 를 모두 포함) */
+.cursor-blink > *:last-child::after,
+.cursor-blink:not(:has(*))::after {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    background-color: #2563eb;
+    animation: cursor-blink 1s step-end infinite;
+}
+.dark .cursor-blink > *:last-child::after,
+.dark .cursor-blink:not(:has(*))::after {
+    background-color: #00ffd1;
+}
+@media (prefers-reduced-motion: reduce) {
+    .cursor-blink > *:last-child::after,
+    .cursor-blink:not(:has(*))::after { animation: none; opacity: 1; }
+}
+
+/* 글자 페이드 애니메이션 (출처 로딩) */
+@keyframes charFade {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+}
+.char-fade-loader span {
+    display: inline-block;
+    opacity: 0;
+    animation: charFade 2s infinite;
+}
+.char-fade-loader span:nth-child(1) { animation-delay: 0.0s; }
+.char-fade-loader span:nth-child(2) { animation-delay: 0.1s; }
+.char-fade-loader span:nth-child(3) { animation-delay: 0.2s; }
+.char-fade-loader span:nth-child(4) { animation-delay: 0.3s; }
+.char-fade-loader span:nth-child(5) { animation-delay: 0.4s; }
+.char-fade-loader span:nth-child(6) { animation-delay: 0.5s; }
+.char-fade-loader span:nth-child(7) { animation-delay: 0.6s; }
+.char-fade-loader span:nth-child(8) { animation-delay: 0.7s; }
+.char-fade-loader span:nth-child(9) { animation-delay: 0.8s; }
+.char-fade-loader span:nth-child(10) { animation-delay: 0.9s; }
+.char-fade-loader span:nth-child(11) { animation-delay: 1.0s; }
+.char-fade-loader span:nth-child(12) { animation-delay: 1.1s; }
+.char-fade-loader span:nth-child(13) { animation-delay: 1.2s; }
+
+/* ==============================================================
+   검색결과 탭 본문 발췌
+   조문 구조(항·호 줄바꿈)를 유지한 채 높이만 제한하고,
+   실제로 잘린 경우에만(.is-clamped) 아래쪽을 배경색으로 흐리게 처리한다.
+   잘리지 않은 짧은 발췌에 페이드가 끼는 것을 막기 위해 JS 로 클래스를 붙인다.
+   ============================================================== */
+.source-excerpt {
+    white-space: pre-line;   /* 개행은 유지, 연속 공백은 압축 */
+    max-height: 7.5em;
+    overflow: hidden;
+    position: relative;
+}
+.source-excerpt.is-clamped::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2.4em;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, #ffffff 80%);
+    pointer-events: none;
+}
+.dark .source-excerpt.is-clamped::after {
+    background: linear-gradient(to bottom, rgba(38, 38, 38, 0) 0%, #262626 80%);
+}
+
+/* 우측 상세 패널 전문: 조문 구조를 살리고 항·호가 시작되는 줄을 눈에 띄게 한다. */
+#panel-content {
+    white-space: pre-line;
+    word-break: break-word;
+}
+
+/* ==============================================================
+   LLM 변환 HTML 렌더링 전용 스타일 (Markdown -> HTML)
+   ============================================================== */
+/* 1. 기본 텍스트 및 줄간격 */
+.llm-content {
+    font-size: 15px;
+    line-height: 1.7; /* 줄간격 여유롭게 */
+    color: #374151;
+    word-break: break-word;
+}
+.dark .llm-content { color: #d1d5db; }
+
+
+/* ★ 첫 번째 요소는 무조건 위쪽 여백 제거 (아이콘 틀어짐 방지) */
+.llm-content > *:first-child {
+    margin-top: 0 !important;
+}
+
+/* SVG 아이콘의 위치를 텍스트 첫 줄 중앙으로 미세 조정 */
+.ai-answer-block svg[class*="mt-0.5"] {
+    margin-top: 0 !important; /* 폰트나 줄높이에 따라 2px ~ 5px 사이로 조정 */
+    flex-shrink: 0; /* 아이콘이 찌그러지지 않게 고정 */
+}
+
+/* 3. [핵심] llm-content의 첫 번째 자식이 제목(h1, h2, h3)일 때만 아이콘 마진 추가 */
+/* modern browser용 (:has 사용 가능 시) */
+.ai-answer-block:has(.llm-content > h1:first-child) svg[class*="mt-0.5"],
+.ai-answer-block:has(.llm-content > h2:first-child) svg[class*="mt-0.5"],
+.ai-answer-block:has(.llm-content > h3:first-child) svg[class*="mt-0.5"] {
+    margin-top: 6px !important; /* 제목일 때만 더 내려서 중앙 맞춤 */
+}
+
+/* 만약 :has가 안 먹는 환경이라면, 레이아웃 구조를 활용한 우회 방법 */
+/* SVG와 .llm-content의 순서에 따라 아래처럼 조정 가능합니다. */
+.ai-answer-block .flex:has(h2:first-child) svg {
+    margin-top: 6px !important;
+}
+
+/* 2. 문단 (p) 여백 */
+.llm-content p {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+.llm-content p:last-child { margin-bottom: 0; }
+
+/* 3. 제목 스타일링 (위는 띄우고 아래는 붙여서 그룹화) */
+.llm-content h2 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+    margin-top: 2rem; /* 대주제 윗 공간 확보 */
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #e5e7eb; /* 밑줄로 구분 */
+    padding-bottom: 0.5rem;
+}
+.dark .llm-content h2 { color: #f9fafb; border-bottom-color: #374151; }
+
+.llm-content h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-top: 2.25rem;
+    margin-bottom: 0.75rem;
+}
+.dark .llm-content h3 { color: #f3f4f6; }
+
+.llm-content h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* 4. 강조(Strong) 스타일 (불필요한 배경색 제거) */
+.llm-content strong {
+    font-weight: 700;
+    color: #111827;
+}
+.dark .llm-content strong { color: #ffffff; }
+
+/* 5. 리스트(목록) 스타일 */
+.llm-content ul, .llm-content ol {
+    padding-left: 1.25rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+.llm-content ul { list-style-type: disc; }
+.llm-content ol { list-style-type: decimal; }
+.llm-content li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+.llm-content li::marker { color: #6b7280; }
+.dark .llm-content li::marker { color: #9ca3af; }
+
+/* 6. 인용구(Blockquote) - 팁 박스처럼 활용 */
+.llm-content blockquote {
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    background-color: #f8fafc;
+    border-left: 4px solid #3b82f6;
+    border-radius: 0 0.5rem 0.5rem 0;
+    color: #475569;
+}
+.dark .llm-content blockquote {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-left-color: #60a5fa;
+    color: #cbd5e1;
+}
+.llm-content blockquote p { margin-bottom: 0; }
+
+/* 7. 구분선(hr) */
+.llm-content hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 2.0rem 0; /* 위아래 간격 넓게 */
+}
+.dark .llm-content hr { border-top-color: #374151; }
+
+/* 8. 표(Table) - 레이아웃 균형 및 가독성 최적화 */
+.llm-content table {
+    width: 100%;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+    border-collapse: collapse;
+    font-size: 14px;
+    /* ★ 핵심 1: 내용에 상관없이 컬럼 너비를 규칙적으로 계산하도록 강제 */
+    table-layout: fixed;
+}
+
+.llm-content th {
+    background-color: #f3f4f6;
+    font-weight: 700;
+    color: #374151;
+    padding: 0.75rem 1rem;
+    border-top: 2px solid #9ca3af;
+    border-bottom: 1px solid #d1d5db;
+    text-align: left;
+    /* ★ 핵심 2: 제목이 너무 길어서 줄바꿈이 안 되는 현상 방지 */
+    word-break: keep-all;
+}
+
+/* 첫 번째 컬럼(보통 '구분', '항목' 등 짧은 내용)의 너비를 20%로 고정 */
+.llm-content th:first-child,
+.llm-content td:first-child {
+    width: 20%;
+}
+
+.dark .llm-content th {
+    background-color: #374151;
+    color: #e5e7eb;
+    border-top-color: #6b7280;
+    border-bottom-color: #4b5563;
+}
+
+.llm-content td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+    /* ★ 핵심 3: 내용이 너무 많아도 표가 깨지지 않고 예쁘게 줄바꿈되도록 설정 */
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+
+.dark .llm-content td { border-bottom-color: #374151; }
+
+/* (선택사항) 표 내부의 리스트 간격 조절 */
+.llm-content td ul, .llm-content td ol {
+    padding-left: 1.25rem;
+    margin: 0;
+}
+
+/* 1. 팝업 창 전체 테두리 둥글게 */
+.swal2-popup {
+    border-radius: 12px !important;
+}
+
+/* 2. 입력창(input) 스타일 꾸미기 (UI처럼 둥글게) */
+.swal2-input {
+    border: 1px solid #d1d5db !important; /* 부드러운 회색 테두리 */
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    height: 38px !important; /* 투박하지 않게 높이 살짝 줄임 */
+    margin: 1.5em auto !important;
+    width: 90% !important;
+    box-shadow: none !important;
+}
+.swal2-input:focus {
+    border-color: #3b82f6 !important; /* 포커스 시 UI 블루 컬러 */
+    box-shadow: 0 0 0 1px #3b82f6 !important;
+}
+
+/* 3. 버튼들의 공통 스타일 */
+.swal2-actions {
+    margin-top: 0.5em !important;
+}
+.swal2-actions button {
+    border-radius: 6px !important; /* UI 스타일처럼 둥근 버튼 */
+    font-size: 14px !important;
+    padding: 8px 20px !important;
+    border: none !important;
+    transition: all 0.2s !important;
+}
+
+/* 4. '확인' 버튼 커스텀 (☀️ 라이트모드 블루 컬러) */
+.swal2-styled.swal2-confirm {
+    background-color: #3b82f6 !important; /* UI 블루 */
+}
+.swal2-styled.swal2-confirm:hover {
+    background-color: #2563eb !important; /* 살짝 어두운 블루 */
+}
+
+/* 5. '취소' 버튼 커스텀 (☀️ 라이트모드) */
+.swal2-styled.swal2-cancel {
+    background-color: #6b7280 !important; /* 중간 회색 */
+}
+.swal2-styled.swal2-cancel:hover {
+    background-color: #4b5563 !important; /* 살짝 어두운 회색 */
+}
+
+/* --- (보너스) 🌙 다크 모드 전용 버튼 색상 덮어쓰기 --- */
+html.dark .swal2-styled.swal2-confirm {
+    background-color: #6366f1 !important; /* 짙은 보라/퍼플 블루 */
+}
+html.dark .swal2-styled.swal2-confirm:hover {
+    background-color: #4f46e5 !important;
+}
+html.dark .swal2-styled.swal2-cancel {
+    background-color: #3f3f46 !important; /* 짙은 회색 */
+}
+html.dark .swal2-styled.swal2-cancel:hover {
+    background-color: #27272a !important;
+}
+
+/* 1. 팝업 창 전체 크기와 테두리 조절 */
+.swal2-popup {
+    border-radius: 12px !important;
+
+    /* ★ 창 크기(너비)를 아담하게 줄입니다! (기본값은 32em, 약 500px로 엄청 큽니다) */
+    width: 360px !important;
+
+    /* ★ 안쪽 여백도 살짝 줄여서 콤팩트한 느낌을 줍니다 */
+    padding: 1.5em 1em 1.2em 1em !important;
+}
+
+/* appUtil.alert() 본문의 줄바꿈(\n)을 살린다. */
+.swal2-html-container {
+    white-space: pre-line;
+}
+
+/* ★ 2. "새로운 이름을 입력하세요" 타이틀 글자 크기 줄이기 */
+.swal2-title {
+    font-size: 1.1rem !important; /* 글자 크기 축소 (16~18px 정도 느낌) */
+    font-weight: 600 !important;  /* 글자 굵기도 너무 뚱뚱하지 않게 조절 */
+    margin-bottom: 0 !important;
+}
+
+/* ==============================================================
+   좌측 사이드바 활성화(Active) 채팅 아이템 얄상하게 (Slim) 스타일
+   ============================================================== */
+
+/* 1. 활성화된 아이템의 스타일 조절 */
+.active-chat-item {
+    /* ★ [핵심수정] 글자가 위로 쏠려 보여서, 위쪽 패딩을 1px 늘리고 아래쪽을 1px 줄여 시각적 균형을 맞춥니다 (5px : 3px) */
+    padding-top: 5px !important;     /* 기존 4px에서 1px 증가 (글자를 아래로 밉니다) */
+    padding-bottom: 3px !important;  /* 기존 4px에서 1px 감소 (전체 높이 유지) */
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+
+    /* 테두리 둥글기 조절 */
+    border-radius: 12px !important;
+
+    /* 배경색: 이미지와 맞춤 */
+    background-color: #1e3a63 !important;
+}
+
+/* 2. 활성화된 아이템의 내부 텍스트 스타일 조절 */
+.active-chat-item .search-trigger {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #ffffff !important;
+}
+
+/* 3. 활성화 상태에서 점세개(...) 버튼 색상 자연스럽게 */
+.active-chat-item .menu-btn {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+.active-chat-item .menu-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+/* --- 🌙 다크모드 대응 --- */
+html.dark .active-chat-item {
+    background-color: #1e3a63 !important;
+}
+
+html.dark .active-chat-item .search-trigger {
+    color: #ffffff !important;
+}
+
+/* ==============================================================
+   검색 탭 결과 행 hover
+   (사전 빌드 Tailwind에 arbitrary dark 클래스가 없어서
+    다크모드에서 흰 배경 + 흰 글씨로 안 보이던 문제를 직접 처리)
+   ============================================================== */
+.search-result-row:hover {
+    background-color: #f9fafb; /* gray-50 */
+}
+.search-result-row:hover .search-trigger {
+    color: #111827 !important; /* 라이트: 진한 검정 계열 */
+}
+
+html.dark .search-result-row:hover {
+    background-color: rgba(255, 255, 255, 0.04); /* 은은한 하이라이트 (흰 배경 아님) */
+}
+html.dark .search-result-row:hover .search-trigger {
+    color: #e5e7eb !important; /* 다크: 밝은 회색 유지 (흰 배경이 아니므로 가독) */
+}
+/* ==============================================================
+   커스텀 툴팁 (잘린 제목 전체 보기)
+   main.js 의 showTruncatedTooltip() 이 body 에 #app-tooltip 을 하나
+   만들어 재사용한다. data-tooltip 속성이 있고 실제로 말줄임 처리된
+   요소에만 표시된다.
+   ============================================================== */
+#app-tooltip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 320px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+    font-weight: 500;
+    color: #f9fafb;
+    background-color: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    white-space: normal;
+    word-break: break-all;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s ease-out;
+}
+#app-tooltip.is-visible { opacity: 1; }
+
+.dark #app-tooltip {
+    color: #e5e7eb;
+    background-color: #3a3a3a;
+    border-color: #4a4a4a;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #app-tooltip { transition: none; }
+}
+
+/* ==============================================================
+   우측 패널 '바로가기' 링크
+   옆에 있는 '문서' 배지(#panel-tag)와 같은 알약(pill) 모양으로 맞춘다.
+   색상은 파란 계열로 구분하고, tailwind.css 가 사전 빌드본이라
+   해당 색상 유틸리티가 없을 수 있어 여기서 직접 지정한다.
+   ============================================================== */
+.panel-link {
+    background-color: #dbeafe;   /* blue-100 */
+    border-color: #bfdbfe;       /* blue-200 */
+    color: #2563eb;              /* blue-600 */
+    text-decoration: none;
+}
+.panel-link:hover {
+    background-color: #bfdbfe;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+}
+.dark .panel-link {
+    background-color: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #93c5fd;              /* blue-300 */
+}
+.dark .panel-link:hover {
+    background-color: rgba(59, 130, 246, 0.32);
+    border-color: rgba(59, 130, 246, 0.7);
+    color: #bfdbfe;
+}

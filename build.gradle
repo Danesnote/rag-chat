@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'org.springframework.boot' version '3.5.16'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.ragchat'
+version = '0.0.1-SNAPSHOT'
+description = 'RAG chatbot - multi-turn retrieval-augmented generation with Spring Boot'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Database: PostgreSQL + pgvector (대화 이력은 JPA, 벡터·키워드 검색은 JdbcTemplate)
+    runtimeOnly 'org.postgresql:postgresql:42.7.13'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // 외장 tomcat으로 기동
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+
+    // Test 기반
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${assistantName}">AI 어시스턴트</title>
+
+    <!--<meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>-->
+
+    <link rel="icon" href="/img/favicon.ico" th:href="@{/img/favicon.ico}">
+
+    <!--
+      [자산 정책] 폐쇄망(내부망) 환경에서 동작해야 하므로 모든 CSS/JS/폰트는
+      외부 CDN 을 참조하지 않고 애플리케이션이 직접 서빙한다.
+      Tailwind 도 런타임 JIT 스크립트가 아닌, 미리 빌드한 정적 CSS 를 사용한다.
+      (빌드 방법: README.md 의 "프론트엔드 빌드" 참고)
+    -->
+
+    <!-- Tailwind CSS (사전 빌드된 정적 파일) -->
+    <link href="/css/tailwind.css" th:href="@{/css/tailwind.css}" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="/css/chat_default.css" th:href="@{/css/chat_default.css}" rel="stylesheet">
+
+    <script>
+        // 페이지가 화면에 그려지기 직전에 테마를 확인하여 즉시 적용 (깜빡임 방지)
+        // 저장소가 차단된 환경에서도 페이지가 죽지 않도록 감싼다. (app-util.js 로드 전이라 래퍼를 쓸 수 없음)
+        (function () {
+            var savedTheme = null;
+            try { savedTheme = localStorage.getItem('theme'); } catch (e) { /* 저장소 차단 환경 */ }
+
+            // 사용자가 명시적으로 dark를 선택한 게 아니라면 기본적으로 light 모드 적용
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+
+    <!-- jQuery -->
+    <script src="/js/vendor/jquery-3.7.1.min.js" th:src="@{/js/vendor/jquery-3.7.1.min.js}"></script>
+
+    <!-- Lucide Icons -->
+    <script src="/js/vendor/lucide.min.js" th:src="@{/js/vendor/lucide.min.js}"></script>
+</head>
+<body class="flex h-screen bg-[#f0f2f5] dark:bg-[#111111] text-gray-800 dark:text-[#e0e0e0] selection:bg-blue-500/30 overflow-hidden p-3 gap-2 md:p-4 md:gap-2.5 transition-colors duration-300">
+
+<!-- Sidebar -->
+<aside id="sidebar" class="w-[250px] transition-all duration-300 bg-white dark:bg-[#262626] border border-gray-200 dark:border-[#3a3a3a] rounded-[24px] shadow-2xl flex flex-col overflow-hidden relative shrink-0 z-20">
+    <div class="flex flex-col h-full py-4 w-full px-4" id="sidebar-inner">
+        <!-- Logo Section -->
+        <div class="flex items-center mb-8 justify-between px-2" id="logo-section">
+            <div id="sidebar-brand" class="flex items-center gap-2.5 cursor-pointer btn-home">
+                <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shrink-0">
+                    <i data-lucide="sparkles" class="w-[18px] h-[18px]"></i>
+                </span>
+                <span class="text-[15px] font-black tracking-tight text-gray-900 dark:text-gray-100 whitespace-nowrap sidebar-text"
+                      th:text="${assistantName}">AI 어시스턴트</span>
+            </div>
+            <button id="toggle-sidebar" class="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-md text-gray-500 dark:text-gray-400 transition-colors">
+                <i data-lucide="panel-left" class="w-[18px] h-[18px]"></i>
+            </button>
+        </div>
+
+        <!-- Primary Actions -->
+        <div class="space-y-2 mb-6" id="primary-actions">
+            <button class="btn-home w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors group" title="새 대화" aria-label="새 대화">
+                <i data-lucide="pen-line" class="w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white shrink-0 transition-colors"></i>
+                <span class="text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white whitespace-nowrap sidebar-text transition-colors">새 대화</span>
+            </button>
+            <button id="btn-sidebar-search" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors group" title="검색" aria-label="검색">
+                <i data-lucide="search" class="w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white shrink-0 transition-colors"></i>
+                <span class="text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white whitespace-nowrap sidebar-text transition-colors">검색</span>
+            </button>
+            <!--<button class="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors group">
+                <i data-lucide="bell" class="w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white shrink-0 transition-colors"></i>
+                <span class="text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white whitespace-nowrap sidebar-text transition-colors">오류 신고</span>
+            </button>-->
+        </div>
+
+        <!-- Collapsible Sections -->
+        <div class="flex-1 flex flex-col min-h-0 pr-1 relative" id="sidebar-lists">
+            <!-- Expanded Sidebar Content -->
+            <div id="sidebar-expanded-content" class="flex-1 flex flex-col min-h-0 gap-4 w-full">
+                <!-- Counsel Section -->
+                <div id="counsel-section-container" class="shrink-0 flex flex-col min-h-0 rounded-lg border border-gray-200 dark:border-[#3a3a3a] bg-gray-50 dark:bg-[#2c2c2c] overflow-hidden transition-all duration-200">
+                    <button id="toggle-counsel" class="shrink-0 w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors bg-gray-100 dark:bg-[#333333]">
+                        <div class="flex items-center gap-2"><i data-lucide="user" class="w-4 h-4"></i>대화</div>
+                        <i data-lucide="chevron-up" class="w-4 h-4 toggle-icon"></i>
+                    </button>
+                    <div id="counsel-wrapper" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                        <div id="counsel-list" class="p-1 flex flex-col">
+                            <!-- Counsel items will be injected here via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Archive Section -->
+                <div id="archive-section-container" class="shrink-0 flex flex-col min-h-0 rounded-lg border border-gray-200 dark:border-[#3a3a3a] bg-gray-50 dark:bg-[#2c2c2c] max-h-[45%] overflow-hidden transition-all duration-200">
+                    <button id="toggle-archive" class="shrink-0 w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors bg-gray-100 dark:bg-[#333333]">
+                        <div class="flex items-center gap-2"><i data-lucide="archive" class="w-4 h-4"></i>아카이브</div>
+                        <i data-lucide="chevron-up" class="w-4 h-4 toggle-icon"></i>
+                    </button>
+                    <div id="archive-wrapper" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                        <div id="archive-list" class="p-1 flex flex-col">
+                            <!-- Archive items will be injected here via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsed Sidebar Content (Icons Only) -->
+            <div id="sidebar-collapsed-content" class="hidden flex-col gap-4 items-center mt-2">
+                <button class="btn-home p-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors" title="새 대화" aria-label="새 대화">
+                    <i data-lucide="pen-line" class="w-[18px] h-[18px]"></i>
+                </button>
+                <button id="btn-sidebar-search-icon" class="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors" title="검색" aria-label="검색">
+                    <i data-lucide="search" class="w-[18px] h-[18px]"></i>
+                </button>
+                <button class="sidebar-expand-trigger p-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors" title="대화" aria-label="대화 목록 열기" data-target="counsel-section-container">
+                    <i data-lucide="history" class="w-[18px] h-[18px]"></i>
+                </button>
+                <button class="sidebar-expand-trigger p-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors" title="아카이브" aria-label="아카이브 목록 열기" data-target="archive-section-container">
+                    <i data-lucide="archive" class="w-[18px] h-[18px]"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Main Content Area Wrapper -->
+<main class="flex-1 flex flex-col relative overflow-hidden bg-white dark:bg-[#262626] border border-gray-200 dark:border-[#3a3a3a] rounded-[24px] shadow-2xl transition-colors duration-300">
+
+    <!-- Top bar -->
+    <div class="h-14 flex items-center justify-between px-8 border-b border-gray-200 dark:border-[#3a3a3a] bg-white/80 dark:bg-[#262626]/80 backdrop-blur-sm z-10 shrink-0 relative transition-colors">
+        <!-- 모델 정보(정적 표기). 모델이 하나뿐이라 선택 드롭다운은 제거함 -->
+        <div class="flex items-center text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">
+            <span th:text="${modelLabel}">LLM</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- 검색 방식 기본값(선택 UI가 없어도 프론트가 참조). 운영에서도 항상 렌더 -->
+            <input type="hidden" id="retrieval-mode-default" th:value="${defaultRetrievalMode}" value="2">
+            <!-- 검색 방식 토글: dev 전용. 운영 배포시 rag.retrieval.mode-selector.visible=false 로 숨김 -->
+            <div th:if="${retrievalSelectorVisible}" class="flex items-center gap-2 text-[11px] font-bold text-gray-600 dark:text-gray-400">
+                <span class="hidden sm:inline">검색방식</span>
+                <select id="retrieval-mode-select" class="bg-gray-100 dark:bg-[#333333] border border-gray-200 dark:border-[#3a3a3a] rounded-md px-2 py-1 text-[11px] text-gray-700 dark:text-gray-200 cursor-pointer focus:outline-none">
+                    <option value="1">하이브리드</option>
+                    <option value="2">하이브리드 + 인접 청크</option>
+                </select>
+            </div>
+            <!-- THEME TOGGLE BUTTON -->
+            <div id="theme-toggle" class="flex items-center gap-2.5 text-[10px] font-bold text-gray-600 dark:text-gray-500 bg-gray-100 dark:bg-[#333333] p-1.5 rounded-full px-4 border border-gray-200 dark:border-[#3a3a3a] cursor-pointer select-none transition-colors">
+                <span id="theme-text" class="w-[65px] text-center transition-colors">DARK MODE</span>
+                <div class="w-7 h-3.5 bg-gray-300 dark:bg-blue-600 rounded-full relative transition-colors">
+                    <div class="absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform translate-x-[2px] dark:translate-x-[16px]" id="theme-switch-knob"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 좌우 분할 뷰 레이아웃 (Chat 영역 vs 상세 정보 패널) -->
+    <div class="flex-1 flex flex-row overflow-hidden relative w-full">
+
+        <!-- LEFT: Chat/Search Scroll Area -->
+        <div class="flex-1 flex flex-col relative min-w-0 bg-white dark:bg-transparent transition-colors">
+            <div id="main-scroll-area" class="flex-1 overflow-y-auto custom-scrollbar relative">
+
+                <!-- ================= INITIAL VIEW ================= -->
+                <div id="view-initial" class="min-h-full flex flex-col items-center justify-center p-4 md:p-8 space-y-8 md:space-y-12 max-w-5xl mx-auto w-full">
+                    <div class="flex flex-col lg:flex-row items-center justify-center gap-3 lg:gap-4 text-center animate-in fade-in slide-in-from-bottom-4 duration-1000 px-4">
+                        <!-- 중앙 인사 그래픽 로고 -->
+                        <i data-lucide="sparkles" class="text-blue-600 dark:text-[#00ffd1] shrink-0 w-10 h-10 md:w-12 md:h-12 mr-2"></i>
+                        <h1 class="text-3xl sm:text-4xl md:text-[40px] lg:text-[44px] font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-500 to-indigo-600 dark:from-[#00ffd1] dark:via-[#8bb8ff] dark:to-[#e639ff] bg-[length:200%_auto] animate-gradient-x break-keep leading-tight lg:leading-snug">
+                            <span th:text="|안녕하세요. ${assistantName}입니다.|">안녕하세요. AI 어시스턴트입니다.</span>
+                        </h1>
+                    </div>
+
+                    <!-- Central Input Box -->
+                    <div class="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 px-4 md:px-0">
+                        <div class="relative bg-gray-50 dark:bg-[#333333] border border-gray-200 dark:border-[#3a3a3a] rounded-2xl shadow-inner p-4 transition-all focus-within:border-gray-400 dark:focus-within:border-[#555555]">
+                  <!-- 높이는 내용에 따라 JS(autoGrowInput)가 조절한다.
+                       고정 높이면 Shift+Enter 로 줄을 바꿔도 입력한 줄이 보이지 않는다. -->
+                  <textarea
+                          id="main-search-input"
+                          rows="1"
+                          class="w-full bg-transparent border-none outline-none text-[15px] md:text-[16px] text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none overflow-y-auto min-h-[40px] md:min-h-[48px] max-h-[200px] leading-relaxed scrollbar-none"
+                          placeholder="질문을 입력해 주세요."
+                  ></textarea>
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-[#444444] transition-colors">
+                                <button class="btn-clear p-1.5 text-gray-500 cursor-pointer hover:text-gray-800 dark:hover:text-gray-300 transition-colors"><i data-lucide="rotate-ccw" class="w-[18px] h-[18px]"></i></button>
+                                <button class="btn-search p-1.5 text-gray-500 cursor-pointer hover:text-gray-800 dark:hover:text-gray-300 transition-colors">
+                                    <span class="icon-send"><i data-lucide="send" class="w-[18px] h-[18px]"></i></span>
+                                    <span class="icon-stop hidden"><i data-lucide="square" class="w-[15px] h-[15px] fill-current"></i></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recommended Questions -->
+                    <div class="w-full max-w-4xl space-y-4 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500">
+                        <div class="flex items-center gap-3 text-gray-500 dark:text-gray-400 font-bold text-sm tracking-wide border-b border-gray-200 dark:border-[#3a3a3a] pb-3 transition-colors">
+                            <i data-lucide="thumbs-up" class="w-[18px] h-[18px] text-blue-500"></i>
+                            <span>추천 질문 가이드</span>
+                        </div>
+                        <div id="recommended-list" class="flex flex-col gap-3">
+                            <!-- Rendered via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= FULL SEARCH VIEW ================= -->
+                <div id="view-search" class="hidden p-8 max-w-5xl mx-auto w-full space-y-4 pt-7 animate-in fade-in duration-300">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">검색</h2>
+                    <!-- Tabs -->
+                    <div>
+                        <div class="inline-flex items-center border border-gray-300 dark:border-[#4a4a4a] rounded-full p-0.5 transition-colors">
+                            <button id="search-tab-counsel" class="px-10 py-1.5 rounded-full text-[14px] transition-all bg-gray-200 text-gray-900 dark:bg-[#5a5a5a] dark:text-gray-200 font-medium">대화</button>
+                            <button id="search-tab-archive" class="px-10 py-1.5 rounded-full text-[14px] transition-all text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium">아카이브</button>
+                        </div>
+                    </div>
+                    <!-- Search Input Bar -->
+                    <div class="flex items-center bg-gray-50 dark:bg-[#333333] border border-gray-200 dark:border-[#3a3a3a] rounded-md overflow-hidden shadow-inner transition-colors">
+                        <input type="text" id="search-page-input" class="flex-1 bg-transparent border-none outline-none px-4 py-2.5 text-gray-900 dark:text-gray-200 text-[14px] placeholder-gray-400 dark:placeholder-gray-500" placeholder="검색어를 입력하세요" />
+                        <button id="search-page-clear" class="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"><i data-lucide="x-circle" class="w-[15px] h-[15px]"></i></button>
+                        <button class="bg-gray-200 dark:bg-[#e0e0e0] p-2.5 px-3.5 text-gray-700 dark:text-gray-800 hover:bg-gray-300 dark:hover:bg-white transition-colors border-l border-gray-300 dark:border-[#3a3a3a]"><i data-lucide="search" class="w-4 h-4"></i></button>
+                    </div>
+                    <!-- Results List -->
+                    <div id="search-results-list" class="space-y-0 border-t border-gray-200 dark:border-[#3a3a3a] mt-2 transition-colors">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- ================= CHAT RESULT VIEW ================= -->
+                <div id="view-area">
+
+                </div>
+
+            </div>
+
+            <!-- Floating Scroll Indicator -->
+            <button id="scroll-indicator" class="hidden absolute bottom-[85px] md:bottom-[95px] left-1/2 -translate-x-1/2 z-40 bg-white/90 dark:bg-black/60 hover:bg-gray-100 dark:hover:bg-black/80 rounded-full p-2.5 backdrop-blur-md border border-gray-200 dark:border-white/20 shadow-2xl transition-all cursor-pointer group">
+                <i data-lucide="arrow-down" class="w-5 h-5 text-gray-800 dark:text-white group-hover:translate-y-0.5 transition-transform" stroke-width="2.5"></i>
+            </button>
+
+            <!-- BOTTOM INPUT AREA -->
+            <div id="bottom-input-area" class="hidden p-4 md:p-6 bg-gradient-to-t from-white via-white dark:from-[#262626] dark:via-[#262626] to-transparent shrink-0 border-t border-gray-200 dark:border-[#3a3a3a]/50 backdrop-blur-md z-30 transition-colors">
+                <div class="max-w-4xl mx-auto">
+                    <!-- items-end: 입력창이 여러 줄로 늘어나도 좌우 버튼이 아래쪽에 정렬되도록 -->
+                    <div class="relative bg-gray-50 dark:bg-[#333333] border border-gray-200 dark:border-[#3a3a3a] rounded-2xl shadow-inner flex items-end px-3 md:px-4 py-2 md:py-3 focus-within:border-gray-400 dark:focus-within:border-[#555555] transition-all group">
+
+                        <!-- 추천 질문 팝업 영역 -->
+                        <div id="bottom-recommended-popup" class="hidden absolute bottom-full left-0 mb-4 w-[300px] md:w-[400px] bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#444] rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-[100] flex-col transition-colors origin-bottom-left">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-[#333] flex items-center justify-between bg-gray-50 dark:bg-[#222] rounded-t-2xl">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="thumbs-up" class="w-4 h-4 text-blue-500"></i>
+                                    <span class="text-sm font-bold text-gray-700 dark:text-gray-200">추천 질문 가이드</span>
+                                </div>
+                                <button id="btn-close-bottom-recommended" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="p-2 flex flex-col gap-1 max-h-[250px] overflow-y-auto custom-scrollbar" id="bottom-recommended-list">
+                                <!-- JS를 통해 리스트가 삽입됩니다 -->
+                            </div>
+                        </div>
+
+                        <button id="btn-bottom-menu" class="p-1 md:p-2 text-gray-500 hover:text-gray-800 dark:text-gray-600 dark:hover:text-gray-400 transition-colors">
+                            <i data-lucide="menu" class="w-5 h-5"></i>
+                        </button>
+                        <!-- input 이 아니라 textarea 여야 Shift+Enter 줄바꿈이 가능하다.
+                             (input 요소는 개행 문자를 담을 수 없어 Shift+Enter 가 무시된다)
+                             높이는 내용에 따라 JS(autoGrowInput)가 조절한다. -->
+                        <textarea
+                                id="bottom-search-input"
+                                rows="1"
+                                class="flex-1 bg-transparent border-none outline-none px-2 md:px-3 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm md:text-[15px] resize-none overflow-y-auto max-h-[160px] leading-relaxed scrollbar-none"
+                                placeholder="추가로 궁금한 내용을 입력하세요..."
+                        ></textarea>
+                        <div class="flex items-center gap-1">
+                            <button class="btn-clear p-1.5 text-gray-500 hover:text-gray-800 dark:text-gray-600 cursor-pointer dark:hover:text-gray-300 mx-1 transition-colors"><i data-lucide="rotate-ccw" class="w-[18px] h-[18px]"></i></button>
+                            <button class="btn-search p-1.5 text-gray-500 hover:text-gray-800 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                                <span class="icon-send"><i data-lucide="send" class="w-[18px] h-[18px]"></i></span>
+                                <span class="icon-stop hidden"><i data-lucide="square" class="w-[15px] h-[15px] fill-current"></i></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE PANEL (상세 정보) -->
+        <div id="right-side-panel" class="hidden w-[400px] flex-col bg-gray-50 dark:bg-[#1a1a1a] border-l border-gray-200 dark:border-[#333] shrink-0 z-30 animate-in slide-in-from-right relative transition-colors duration-300">
+
+            <!-- RESIZER HANDLE (Pill Shape) -->
+            <div id="panel-resizer" class="absolute top-1/2 -left-[14px] -translate-y-1/2 w-[14px] h-12 bg-white dark:bg-[#222] border border-gray-300 dark:border-[#444] border-r-0 rounded-l-md cursor-col-resize z-50 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#333] transition-colors shadow-[-2px_0_4px_rgba(0,0,0,0.05)] dark:shadow-[-2px_0_4px_rgba(0,0,0,0.2)]">
+                <i data-lucide="chevron-left" class="w-3 h-3 text-gray-400 dark:text-gray-500 pointer-events-none"></i>
+            </div>
+
+            <!-- Panel Header -->
+            <div class="h-[52px] flex items-center justify-between px-4 border-b border-gray-200 dark:border-[#333] shrink-0 bg-white/50 dark:bg-[#222]/50 backdrop-blur-sm transition-colors">
+                <button id="btn-reset-panel-size" class="p-1.5 text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white rounded-md transition-colors hover:bg-gray-200 dark:hover:bg-white/10" title="기본 창크기로 복구">
+                    <i data-lucide="panel-left" class="w-5 h-5"></i>
+                </button>
+                <button id="btn-close-panel" class="p-1.5 text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white rounded-md transition-colors hover:bg-gray-200 dark:hover:bg-white/10">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <!-- Panel Content -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
+                <div class="flex items-center justify-between gap-2">
+                    <span id="panel-tag" class="inline-block bg-purple-100 dark:bg-[#8b5cf6]/20 border border-purple-200 dark:border-[#8b5cf6]/50 text-purple-600 dark:text-[#d8b4fe] text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors">문서</span>
+                    <!-- 원문 사이트 바로가기 (rag.ui.source-view-url 이 설정되고 originalDocId 가 있는 출처에서만 노출) -->
+                    <a id="panel-external-link" href="#" rel="noopener noreferrer"
+                       class="panel-link hidden shrink-0 inline-flex items-center gap-1 border text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors"
+                       title="원문 전문을 새 창으로 엽니다">
+                        바로가기
+                        <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
+                    </a>
+                </div>
+                <h3 class="text-[18px] font-bold text-gray-900 dark:text-gray-100 leading-snug break-keep transition-colors" id="panel-title">타이틀</h3>
+                <div id="panel-meta" class="text-[12px] text-gray-500 dark:text-gray-400 font-medium break-all"></div>
+                <hr class="border-gray-200 dark:border-[#333] transition-colors" />
+                <div class="whitespace-pre-line text-[14px] text-gray-700 dark:text-gray-300 leading-relaxed space-y-3 break-keep transition-colors" id="panel-content">내용</div>
+            </div>
+        </div>
+
+    </div> <!-- // End of Flex Row Split Area -->
+
+</main>
+
+<script th:inline="javascript">
+    // 서버가 내려주는 현재 대화방 번호 (없으면 null)
+    let chatSeq = [[${chatSeq}]];
+    // 세션 만료(401) 시 alert 후 이동할 포털 주소 (appUtil.handleSessionExpired 에서 사용)
+    var SSO_PORTAL_URL = [[${portalUrl}]];
+    // 출처 원문 바로가기 URL 접두사 (비어 있으면 바로가기 버튼을 숨긴다)
+    var SOURCE_VIEW_URL = [[${sourceViewUrl}]];
+</script>
+<script src="/js/vendor/marked.min.js" th:src="@{/js/vendor/marked.min.js}"></script>
+<script src="/js/vendor/purify.min.js" th:src="@{/js/vendor/purify.min.js}"></script>
+<script src="/js/vendor/sweetalert2.min.js" th:src="@{/js/vendor/sweetalert2.min.js}"></script>
+<script src="/js/common/app-util.js" th:src="@{/js/common/app-util.js}"></script>
+<script src="/js/main.js" th:src="@{/js/main.js}"></script>
+</body>
+</html>

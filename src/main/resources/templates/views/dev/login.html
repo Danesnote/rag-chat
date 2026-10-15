@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개발 로그인 (DEV)</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            background: #111827; color: #e5e7eb;
+            font-family: "Malgun Gothic", system-ui, -apple-system, sans-serif;
+        }
+        .card {
+            width: 360px; max-width: calc(100vw - 32px);
+            background: #1f2937; border: 1px solid #374151; border-radius: 16px;
+            padding: 28px 26px; box-shadow: 0 20px 40px rgba(0,0,0,.4);
+        }
+        .badge {
+            display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .08em;
+            color: #fbbf24; border: 1px solid #b45309; background: rgba(180,83,9,.15);
+            padding: 3px 8px; border-radius: 999px; margin-bottom: 14px;
+        }
+        h1 { font-size: 20px; margin: 0 0 6px; color: #f9fafb; }
+        .desc { font-size: 13px; color: #9ca3af; margin: 0 0 20px; line-height: 1.5; }
+        label { display: block; font-size: 12px; font-weight: 700; color: #cbd5e1; margin: 14px 0 6px; }
+        input {
+            width: 100%; padding: 10px 12px; font-size: 14px;
+            background: #111827; color: #e5e7eb; border: 1px solid #374151; border-radius: 8px; outline: none;
+        }
+        input:focus { border-color: #3b82f6; }
+        button {
+            width: 100%; margin-top: 22px; padding: 11px 12px; font-size: 14px; font-weight: 700;
+            background: #2563eb; color: #fff; border: none; border-radius: 8px; cursor: pointer;
+        }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #374151; color: #9ca3af; cursor: not-allowed; }
+        .msg { font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; line-height: 1.5; }
+        .msg.error { background: rgba(220,38,38,.15); border: 1px solid #b91c1c; color: #fca5a5; }
+        .msg.warn { background: rgba(180,83,9,.15); border: 1px solid #b45309; color: #fcd34d; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="badge">DEV ONLY · 개발 전용</div>
+    <h1>개발 로그인</h1>
+    <p class="desc">SSO 포털을 거치지 않고 개발 환경(dev 프로파일)에 접근합니다.<br>이 페이지는 dev 프로파일에서만 존재합니다.</p>
+
+    <div th:if="${error}" class="msg error" th:text="${error}"></div>
+    <div th:if="${devLoginDisabled}" class="msg warn">
+        개발 로그인이 비활성화되어 있습니다. dev 프로파일 properties 의 <b>dev.login.password</b> 를 설정하세요.
+    </div>
+
+    <form th:action="@{/dev/login}" method="post" autocomplete="off">
+        <label for="id">아이디</label>
+        <input type="text" id="id" name="id" autocomplete="off" th:disabled="${devLoginDisabled}" required>
+
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" name="password" autocomplete="off" th:disabled="${devLoginDisabled}" required>
+
+        <button type="submit" th:disabled="${devLoginDisabled}">로그인</button>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+# RAG Chat 실행에 필요한 오픈소스 인프라
+#
+#   postgres  : PostgreSQL 16 + pgvector  — 대화 이력 + 문서 청크/벡터 저장
+#   embedding : HuggingFace Text Embeddings Inference + BAAI/bge-m3 (1024차원, 다국어)
+#   reranker  : HuggingFace Text Embeddings Inference + BAAI/bge-reranker-v2-m3
+#
+# LLM 은 GPU 사양에 따라 고르도록 포함하지 않았다. README 의 "LLM 서버" 절을 참고한다.
+# (vLLM / Ollama 등 OpenAI 호환 Chat Completions API 면 무엇이든 된다)
+#
+# 첫 기동 시 모델 가중치를 내려받으므로 embedding/reranker 가 준비되기까지 몇 분 걸린다.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ragchat
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ragchat"]
+      interval: 5s
+      retries: 10
+
+  embedding:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+    command: --model-id BAAI/bge-m3
+    ports:
+      - "8081:80"
+    volumes:
+      - hf-cache:/data
+
+  reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+    command: --model-id BAAI/bge-reranker-v2-m3
+    ports:
+      - "8082:80"
+    volumes:
+      - hf-cache:/data
+
+volumes:
+  pgdata:
+  hf-cache:

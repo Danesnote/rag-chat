@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인증 실패 · AI 어시스턴트</title>
+
+    <link rel="icon" href="/img/favicon.ico" th:href="@{/img/favicon.ico}">
+
+    <!--
+      [중요] 이 페이지에는 채팅 기능이 전혀 들어있지 않다.
+      인증되지 않은 사용자에게 채팅 화면(chat.html)을 내려주고 모달로 가리는 방식은
+      개발자도구로 모달만 지우면 뚫린다. 그래서 아예 다른 페이지를 내려준다.
+      개발자도구로 이 페이지의 모달을 지워도 그 뒤에는 아무 기능이 없다.
+    -->
+    <link href="/css/tailwind.css" th:href="@{/css/tailwind.css}" rel="stylesheet">
+    <link href="/css/chat_default.css" th:href="@{/css/chat_default.css}" rel="stylesheet">
+
+    <script>
+        (function () {
+            var savedTheme = null;
+            try { savedTheme = localStorage.getItem('theme'); } catch (e) { /* 저장소 차단 환경 */ }
+
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-[#f0f2f5] dark:bg-[#111111] text-gray-800 dark:text-[#e0e0e0] p-4 transition-colors duration-300">
+
+<!-- 모달이 닫혀도 보이도록 최소한의 안내만 남긴다. -->
+<main class="w-full max-w-[420px] text-center">
+    <div class="flex items-center justify-center gap-2.5 mb-5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7 text-blue-600 dark:text-[#00ffd1] shrink-0" aria-hidden="true">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+        </svg>
+        <span class="text-[13px] font-bold tracking-wider text-gray-500 dark:text-gray-400">AI 어시스턴트</span>
+    </div>
+
+    <h1 class="text-[20px] font-bold text-gray-900 dark:text-gray-100 leading-snug break-keep mb-3"
+        th:text="${ssoAlert} ?: '인증이 필요합니다.'">인증이 필요합니다.</h1>
+
+    <p class="text-[14px] text-gray-600 dark:text-gray-400 leading-relaxed break-keep mb-7">
+        포털을 통해 다시 접속해 주세요.
+    </p>
+
+    <a th:href="${portalUrl}" href="/sso"
+       class="inline-block px-5 py-2.5 rounded-lg text-[14px] font-bold text-white bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors">
+        포털로 이동
+    </a>
+</main>
+
+<!-- alert 구현은 appUtil.alert() 하나로 유지한다. (jQuery 없이 동작하는 함수만 사용) -->
+<script src="/js/vendor/sweetalert2.min.js" th:src="@{/js/vendor/sweetalert2.min.js}"></script>
+<script src="/js/common/app-util.js" th:src="@{/js/common/app-util.js}"></script>
+<script th:inline="javascript">
+    (function () {
+        var message   = [[${ssoAlert}]] || '인증이 필요합니다.\n포털에서 다시 접속해 주세요.';
+        var portalUrl = [[${portalUrl}]] || '/sso';
+
+        // 확인을 누르면(또는 창을 닫으면) 지정된 주소로 이동한다.
+        // replace 를 써서 뒤로가기로 이 페이지에 돌아오지 않게 한다.
+        appUtil.alert(message, 'error').then(function () {
+            window.location.replace(portalUrl);
+        });
+    })();
+</script>
+</body>
+</html>
